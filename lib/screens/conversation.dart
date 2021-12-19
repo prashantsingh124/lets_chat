@@ -1,29 +1,35 @@
-import 'dart:io';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lets_chat/Helper/constants.dart';
 import 'package:lets_chat/database.dart';
 import 'package:lets_chat/widget.dart';
 import 'package:lets_chat/screens/chatRooms.dart';
+import 'package:intl/intl.dart';
 
 
 
 class ConversationScreen extends StatefulWidget {
    final String chatRoomId;
    final String userName;
-   //Map<String, dynamic> userMap;
    ConversationScreen(this.chatRoomId,this.userName);
   @override
   _ConversationScreenState createState() => _ConversationScreenState();
 }
 
 class _ConversationScreenState extends State<ConversationScreen> {
-  final FirebaseFirestore _firestore =FirebaseFirestore.instance;
 
+  final FirebaseFirestore _firestore =FirebaseFirestore.instance;
+  Database database =new Database();
+  Stream messageStream;
+  bool typingStatus=false;
+  TextEditingController messageController= new TextEditingController();
+  String timeString;
+  String userEmail,documentId,statusText;
   Map<String, dynamic> userMap;
+
   void getSecondUserMap(String UserName) async{
     await _firestore
         .collection('users')
@@ -33,13 +39,14 @@ class _ConversationScreenState extends State<ConversationScreen> {
       setState(() {
         userMap = value.docs[0].data();
       });
-      print(userMap);
     });
   }
-
-  Database database =new Database();
-  Stream messageStream;
-  TextEditingController messageController= new TextEditingController();
+  void setStatus() async{
+    await _firestore.collection("users").doc(FirebaseAuth.instance.currentUser.uid).update({
+      "typing": typingStatus,
+    });
+    //typingStatus=false;
+  }
 
   Widget chatMessageList(){
     return StreamBuilder(
@@ -56,15 +63,12 @@ class _ConversationScreenState extends State<ConversationScreen> {
             reverse: true,
             itemCount:snapshot.data.docs.length,
               itemBuilder: (context,index){
-              print(snapshot.data.docs[index].data()["message"]);
-              return MessageTile(snapshot.data.docs[index].data()["message"],snapshot.data.docs[index].data()["sendBy"]==Constants.myName);
+              return MessageTile(snapshot.data.docs[index].data()["message"],snapshot.data.docs[index].data()["sendBy"]==Constants.myName,widget.chatRoomId);
           }),
         );
       },
     );
   }
-
-  String userEmail,documentId;
 
   sendMessage(){
     if(messageController.text.isNotEmpty){
@@ -72,17 +76,17 @@ class _ConversationScreenState extends State<ConversationScreen> {
       "message":messageController.text,
         "sendBy":Constants.myName,
         "time":DateTime.now().millisecondsSinceEpoch,
+        "getTime" : DateFormat('hh:mm a').format(DateTime.now()).toString(),
       };
+      timeString= messageMap["getTime"];
       database.addConversationMessages(widget.chatRoomId, messageMap);
       messageController.text="";
     }
   }
-  Stream snapVal;
 
   @override
   void initState() {
     getSecondUserMap(widget.userName);
-    //userCurrentId();
     database.getConversationMessages(widget.chatRoomId).then((value){
     setState(() {
       print(widget.chatRoomId);
@@ -94,7 +98,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
   }
   @override
   Widget build(BuildContext context) {
-
+    setStatus();
     return Scaffold(
       appBar:AppBar(
         backgroundColor: Colors.green[900],
@@ -102,6 +106,7 @@ class _ConversationScreenState extends State<ConversationScreen> {
           stream:_firestore.collection("users").doc(userMap['uid']).snapshots() ,
           builder: (context, snapshot) {
             if (snapshot.data != null) {
+              statusText = snapshot.data['typing'] == false ? snapshot.data['status'] : "Typing";
               return Container(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,8 +120,9 @@ class _ConversationScreenState extends State<ConversationScreen> {
                      ),
                     ),
                     SizedBox(height: 2,),
+
                     Text(
-                      snapshot.data['status'],
+                      statusText,
                       style: TextStyle(
                           fontSize: 14,
                         color: Colors.white,
@@ -138,15 +144,28 @@ class _ConversationScreenState extends State<ConversationScreen> {
           children: [
             chatMessageList(),
             Container(
+              padding: EdgeInsets.symmetric(vertical: 2),
               alignment: Alignment.bottomCenter,
               child: Container(
-                color: Colors.blueGrey[700],
-                padding: EdgeInsets.symmetric(horizontal: 24,vertical: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadiusDirectional.circular(30.0),
+                  color: Colors.blueGrey[700],
+                ),
+
+                padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
                 child: Row(
                   children: [
                     Expanded(
                         child: TextField(
                           controller: messageController,
+                          onChanged: (text) {
+                            if(messageController.text.isEmpty){
+                              typingStatus=false;
+                            }else {
+                              typingStatus = true;
+                            }
+                            setStatus();
+                          },
                           style: TextStyle(
                             color: Colors.white,
                           ),
@@ -161,19 +180,20 @@ class _ConversationScreenState extends State<ConversationScreen> {
                     ),
                     GestureDetector(
                       onTap: (){
+                        typingStatus=false;
+                        setStatus();
                         sendMessage();
                       },
                       child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                Color(0x36FFFFFF),
-                                Color(0x0FFFFFFF),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(48),
-                          ),
-                          child: Icon(Icons.send),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundImage: AssetImage('images/send.jpg'),
+                              )
+                            ],
+                          )
                       ),
                     ),
                   ],
@@ -190,21 +210,22 @@ class _ConversationScreenState extends State<ConversationScreen> {
 class MessageTile extends StatelessWidget {
   final String message;
   final bool isSendByMe;
-  MessageTile(this.message,this.isSendByMe);
+  String chatRoomIdForTiming;
+  MessageTile(this.message,this.isSendByMe,this.chatRoomIdForTiming);
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.only(left: isSendByMe ?0:24 , right: isSendByMe ? 24:0),
+      padding: EdgeInsets.only(left: isSendByMe ?0:10 , right: isSendByMe ? 10:0),
       margin: EdgeInsets.symmetric(vertical: 8),
       width: MediaQuery.of(context).size.width,
       alignment: isSendByMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 24,vertical: 16),
+        padding: EdgeInsets.symmetric(horizontal: 20,vertical: 10),
         decoration: BoxDecoration(
           gradient: LinearGradient(
               colors: isSendByMe ? [
-              const Color(0xff007EF4),
-              const Color(0xff2A75BC),
+              const Color(0xff008000),
+                const Color(0xff228b22),
               ]
               : [
               const Color(0x1AFFFFFF),
@@ -214,11 +235,35 @@ class MessageTile extends StatelessWidget {
           borderRadius: isSendByMe ? BorderRadius.only(topLeft: Radius.circular(23),topRight: Radius.circular(23),bottomLeft: Radius.circular(23)) :
           BorderRadius.only(topLeft: Radius.circular(23),topRight: Radius.circular(23),bottomRight: Radius.circular(23)),
       ),
-        child: Text(
-            message,
-          style: TextStyle(
-            color: Colors.white,
-          ),
+        child:StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection("ChatRoom").doc(chatRoomIdForTiming).collection("chats").doc(message).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.data != null) {
+              return Container(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      message,
+                      style: TextStyle(
+                        fontSize:16,
+                        color: Colors.white,
+                        //fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      snapshot.data['getTime'],
+                      style: TextStyle(
+                        color: Colors.white54,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              return Container();
+            }
+          },
         ),
       ),
     );

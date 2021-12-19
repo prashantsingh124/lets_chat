@@ -60,7 +60,7 @@ String secondUserName;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state){
-    if(state==AppLifecycleState.resumed){
+    if(state==AppLifecycleState.resumed ){
       //online
       setStatus("Online");
     }else{
@@ -73,7 +73,7 @@ String secondUserName;
   void initState(){
     getUserInfo();
     WidgetsBinding.instance.addObserver(this);
-    setStatus("online");
+    setStatus("Online");
     super.initState();
   }
 
@@ -105,6 +105,7 @@ String secondUserName;
         actions: [
           GestureDetector(
             onTap: (){
+              setStatus("offline");
               authMethod.SignOut();
               Navigator.pushReplacement(context,MaterialPageRoute(builder: (context)=>Authenticate(),
               ));
@@ -138,7 +139,6 @@ ChatRoomTile(this.userName,this.chatRoomId);
   @override
 
   Widget build(BuildContext context) {
-    print(userName);
     return GestureDetector(
 
       onTap: (){

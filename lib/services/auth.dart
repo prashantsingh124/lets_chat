@@ -38,6 +38,7 @@ class AuthMethod{
         "email": email,
         "status": "Unavalible",
         "uid": _auth.currentUser.uid,
+        "typing" : "false",
       });
       return _userfromfirebaseUser(firebaseUser);
     }

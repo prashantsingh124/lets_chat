@@ -23,7 +23,7 @@ class Database{
 }
 
   addConversationMessages(String chatRoomId,messageMap){
-    FirebaseFirestore.instance.collection("ChatRoom").doc(chatRoomId).collection("chats").add(messageMap).catchError((e){
+    FirebaseFirestore.instance.collection("ChatRoom").doc(chatRoomId).collection("chats").doc(messageMap["message"]).set(messageMap).catchError((e){
       print(e.toString());
     });
   }

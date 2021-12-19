@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lets_chat/Helper/constants.dart';
 import 'package:lets_chat/database.dart';
@@ -17,7 +18,9 @@ class SignIn extends StatefulWidget {
 }
 
 class _SignInState extends State<SignIn> {
-
+  ChatRoom chatroom= new ChatRoom();
+  final FirebaseAuth _auth=FirebaseAuth.instance;
+  final FirebaseFirestore _firestore =FirebaseFirestore.instance;
   final formKey =GlobalKey<FormState>();
   AuthMethod authMethod=new AuthMethod();
   TextEditingController emailController =new TextEditingController();
