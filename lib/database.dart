@@ -30,4 +30,7 @@ class Database{
   getChatRooms(String userName) async{
   return await FirebaseFirestore.instance.collection("ChatRoom").where("users",arrayContains: userName).snapshots();
   }
+  getOnlinestatusOfUser(userMap) async{
+    return await FirebaseFirestore.instance.collection("users").doc(userMap['uid']).snapshots();
+  }
 }

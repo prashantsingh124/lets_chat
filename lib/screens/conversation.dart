@@ -99,108 +99,114 @@ class _ConversationScreenState extends State<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     setStatus();
-    return Scaffold(
-      appBar:AppBar(
-        backgroundColor: Colors.green[900],
-        title: StreamBuilder<DocumentSnapshot>(
-          stream:_firestore.collection("users").doc(userMap['uid']).snapshots() ,
-          builder: (context, snapshot) {
-            if (snapshot.data != null) {
-              statusText = snapshot.data['typing'] == false ? snapshot.data['status'] : "Typing";
-              return Container(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                     widget.userName,
-                     style: TextStyle(
-                       fontSize:20,
-                       color: Colors.white,
-                       fontWeight: FontWeight.bold,
-                     ),
-                    ),
-                    SizedBox(height: 2,),
-
-                    Text(
-                      statusText,
-                      style: TextStyle(
-                          fontSize: 14,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-
+    return WillPopScope(
+    onWillPop: () async {
+      typingStatus=false;
+      return true;
+    },
+      child: Scaffold(
+        appBar:AppBar(
+          backgroundColor: Colors.green[900],
+          title: StreamBuilder<DocumentSnapshot>(
+            stream:_firestore.collection("users").doc(userMap['uid']).snapshots() ,
+            builder: (context, snapshot) {
+              if (snapshot.data != null) {
+                statusText = snapshot.data['typing'] == false ? snapshot.data['status'] : "typing...";
+                return Container(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                       widget.userName,
+                       style: TextStyle(
+                         fontSize:20,
+                         color: Colors.white,
+                         fontWeight: FontWeight.bold,
+                       ),
                       ),
-                    ),
-                  ],
-                ),
-              );
-            } else {
-              return Container();
-            }
-          },
-        ),
-      ),
-      body: Container(
-        child: Stack(
-          children: [
-            chatMessageList(),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 2),
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadiusDirectional.circular(30.0),
-                  color: Colors.blueGrey[700],
-                ),
+                      SizedBox(height: 2,),
 
-                padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: TextField(
-                          controller: messageController,
-                          onChanged: (text) {
-                            if(messageController.text.isEmpty){
-                              typingStatus=false;
-                            }else {
-                              typingStatus = true;
-                            }
-                            setStatus();
-                          },
-                          style: TextStyle(
-                            color: Colors.white,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: "Message",
-                            hintStyle: TextStyle(
-                              color: Colors.white60,
+                      Text(
+                        statusText,
+                        style: TextStyle(
+                            fontSize: 14,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return Container();
+              }
+            },
+          ),
+        ),
+        body: Container(
+          child: Stack(
+            children: [
+              chatMessageList(),
+              Container(
+                padding: EdgeInsets.symmetric(vertical: 2),
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadiusDirectional.circular(30.0),
+                    color: Colors.blueGrey[700],
+                  ),
+
+                  padding: EdgeInsets.symmetric(horizontal: 20,vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: TextField(
+                            controller: messageController,
+                            onChanged: (text) {
+                              if(messageController.text.isEmpty){
+                                typingStatus=false;
+                              }else {
+                                typingStatus = true;
+                              }
+                              setStatus();
+                            },
+                            style: TextStyle(
+                              color: Colors.white,
                             ),
-                            border: InputBorder.none,
-                          ),
-                        )
-                    ),
-                    GestureDetector(
-                      onTap: (){
-                        typingStatus=false;
-                        setStatus();
-                        sendMessage();
-                      },
-                      child: Container(
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              CircleAvatar(
-                                radius: 22,
-                                backgroundImage: AssetImage('images/send.jpg'),
-                              )
-                            ],
+                            decoration: InputDecoration(
+                              hintText: "Message",
+                              hintStyle: TextStyle(
+                                color: Colors.white60,
+                              ),
+                              border: InputBorder.none,
+                            ),
                           )
                       ),
-                    ),
-                  ],
+                      GestureDetector(
+                        onTap: (){
+                          typingStatus=false;
+                          setStatus();
+                          sendMessage();
+                        },
+                        child: Container(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundImage: AssetImage('images/send.jpg'),
+                                )
+                              ],
+                            )
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
