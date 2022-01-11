@@ -1,5 +1,5 @@
 # lets_chat
-Consisting of 20+ classes,and over 3000 lines of code I have Built "LetsChat" App using FLutter SDK , Dart Programming language and Google's firebase as backend.<br />
+Consisting of 20+ classes,and over 1500 lines of code I have Built "LetsChat" App using FLutter SDK , Dart Programming language and Google's firebase as backend.<br />
 The Features Are Listed Below :<br />
  -> Authentication is required to use the app using Signin and Signup options.<br />
  -> User Online/Offline Status.<br />
